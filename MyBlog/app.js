@@ -206,7 +206,7 @@ function renderArticle(id) {
   const article = store.articles.find(a => a.id === Number(id));
   if (!article) return layout(`<section class="section"><div class="empty">这篇文章不可访问。</div></section>`);
   const comments = store.comments.filter(c => c.articleId === article.id);
-  return layout(`<section class="section"><article class="detail"><div class="detail-topline"><a class="text-link" href="#archive">← 返回文章列表</a>${isAdmin() && isPublished(article) ? `<button class="delete-article" data-delete="${article.id}">删除文章</button>` : ""}</div><div class="article-meta" style="margin-top:34px"><span>${article.date}</span><span>${article.read} min read</span></div><h1>${article.title}</h1><p class="lead">${article.summary}</p><div class="tag-row">${article.tags.map(t => `<span class="tag">${t}</span>`).join("")}</div><div class="detail-content">${article.body.map(p => `<p>${p}</p>`).join("")}${articleMediaMarkup(article)}</div><div class="interaction"><button class="${article.liked ? "active" : ""}" data-like="${article.id}">♡ ${article.liked ? "已喜欢" : "喜欢"} · ${article.likes}</button><button data-action="comment" data-id="${article.id}">评论 · ${comments.length}</button></div><h2>评论</h2><div class="comment-list">${comments.length ? comments.map(c => `<div class="comment"><div class="comment-head"><span>${c.name}</span><span>刚刚</span></div><p>${c.text}</p></div>`).join("") : `<div class="empty">还没有评论，来说点什么吧。</div>`}</div></article></section>`);
+  return layout(`<section class="section"><article class="detail"><div class="detail-topline"><a class="text-link" href="#archive">← 返回文章列表</a>${isAdmin() ? `<div class="detail-admin-actions"><button class="button button-light" data-action="edit-article" data-id="${article.id}">编辑文章</button>${isPublished(article) ? `<button class="delete-article" data-delete="${article.id}">删除文章</button>` : ""}</div>` : ""}</div><div class="article-meta" style="margin-top:34px"><span>${article.date}</span><span>${article.read} min read</span>${article.updatedAt && article.updatedAt !== article.date ? `<span>更新于 ${formatAnnouncementTime(article.updatedAt)}</span>` : ""}</div><h1>${article.title}</h1><p class="lead">${article.summary}</p><div class="tag-row">${article.tags.map(t => `<span class="tag">${t}</span>`).join("")}</div><div class="detail-content">${article.body.map(p => `<p>${p}</p>`).join("")}${articleMediaMarkup(article)}</div><div class="interaction"><button class="${article.liked ? "active" : ""}" data-like="${article.id}">♡ ${article.liked ? "已喜欢" : "喜欢"} · ${article.likes}</button><button data-action="comment" data-id="${article.id}">评论 · ${comments.length}</button></div><h2>评论</h2><div class="comment-list">${comments.length ? comments.map(c => `<div class="comment"><div class="comment-head"><span>${c.name}</span><span>刚刚</span></div><p>${c.text}</p></div>`).join("") : `<div class="empty">还没有评论，来说点什么吧。</div>`}</div></article></section>`);
 }
 function renderTimeline() {
   return layout(`<section class="page-top"><h1>时间轴</h1><p>按照时间，回看一路写下的痕迹。</p></section><section class="section"><div class="timeline">${[...store.articles].sort((a,b) => b.date.localeCompare(a.date)).map(a => `<div class="timeline-item"><div class="timeline-date">${a.date.slice(0,7)}</div><a class="timeline-card" href="#article-${a.id}"><h3>${a.title}</h3><p>${a.summary}</p></a></div>`).join("")}</div></section>`);
@@ -448,6 +448,18 @@ http://localhost:4173/`;
     if (!isAdmin()) return showToast("请先登录管理员账户");
     pendingArticleMedia = [];
     modal("发布文章", `<form id="publish-form" class="form-stack"><label class="form-label">文章标题<input class="form-input" name="title" maxlength="80" required placeholder="输入文章标题" /></label><label class="form-label">文章摘要<textarea class="form-textarea compact-textarea" name="summary" maxlength="180" required placeholder="用一句话介绍这篇文章"></textarea></label><label class="form-label">文章正文<textarea class="form-textarea publish-content" name="body" maxlength="10000" required placeholder="写下你的文章内容"></textarea></label><label class="form-label">标签<input class="form-input" name="tags" maxlength="100" required placeholder="用逗号分隔，例如：生活，随笔" /></label><label class="form-label">图片或视频<button type="button" class="button button-light upload-button media-upload-button">选择文件<input id="article-media" type="file" accept="image/png,image/jpeg,image/webp,video/mp4,video/webm" multiple /></button><span class="form-help">支持 PNG、JPG、WEBP、MP4、WEBM；图片不超过 5MB，视频不超过 30MB。</span><div id="media-preview" class="media-preview"></div></label><div class="modal-actions"><button type="button" class="button button-light" data-close>取消</button><button type="submit" name="status" value="draft" class="button button-light">保存草稿</button><button type="submit" name="status" value="published" class="button button-primary">正式发布</button></div></form>`);
+  }
+  if (name === "edit-article") {
+    if (!isAdmin()) return showToast("请先登录管理员账户");
+    const article = store.articles.find(item => item.id === Number(action.dataset.id));
+    if (!article) return showToast("文章不存在");
+    pendingArticleMedia = [];
+    const existingMedia = article.media?.length
+      ? article.media.map(media => media.type === "video"
+        ? `<video controls src="${media.src}"></video>`
+        : `<img src="${media.src}" alt="${media.name || "现有文章媒体"}" />`).join("")
+      : `<span class="media-empty">暂无已上传媒体</span>`;
+    modal("编辑文章", `<form id="edit-article-form" class="form-stack"><input type="hidden" name="articleId" value="${article.id}" /><label class="form-label">文章标题<input class="form-input" name="title" maxlength="80" required value="${article.title}" /></label><label class="form-label">文章摘要<textarea class="form-textarea compact-textarea" name="summary" maxlength="180" required>${article.summary}</textarea></label><label class="form-label">文章正文<textarea class="form-textarea publish-content" name="body" maxlength="10000" required>${article.body.join("\n")}</textarea></label><label class="form-label">标签<input class="form-input" name="tags" maxlength="100" required value="${article.tags.join("，")}" /></label><label class="form-label">已有图片或视频<div class="media-preview existing-media-preview">${existingMedia}</div></label><label class="form-label">新增图片或视频<button type="button" class="button button-light upload-button media-upload-button">选择文件<input id="article-media" type="file" accept="image/png,image/jpeg,image/webp,video/mp4,video/webm" multiple /></button><span class="form-help">新增文件会保留原有媒体。支持 PNG、JPG、WEBP、MP4、WEBM；图片不超过 5MB，视频不超过 30MB。</span><div id="media-preview" class="media-preview"></div></label><div class="modal-actions"><button type="button" class="button button-light" data-close>取消</button><button class="button button-primary">保存修改</button></div></form>`);
   }
   if (name === "guestbook") setPage("guestbook");
   if (name === "friend-backup") setPage("friend-backup");
@@ -835,6 +847,55 @@ document.addEventListener("submit", async e => {
     closeModal();
     setPage("archive");
     showToast(status === "draft" ? "草稿保存成功" : "文章发布成功");
+  }
+  if (e.target.id === "edit-article-form") {
+    if (!isAdmin()) return showToast("登录状态已失效，请重新登录");
+    const data = new FormData(e.target);
+    const article = store.articles.find(item => item.id === Number(data.get("articleId")));
+    if (!article) return showToast("文章不存在");
+    const title = data.get("title").trim();
+    const summary = data.get("summary").trim();
+    const body = data.get("body").trim();
+    const parsedTags = data.get("tags").split(/[,，]/).map(tag => tag.trim()).filter(Boolean);
+    if (!title || !summary || !body || !parsedTags.length) return showToast("文章内容不完整");
+    const updatedAt = new Date().toISOString();
+    const originalArticle = {
+      title: article.title,
+      summary: article.summary,
+      body: article.body,
+      tags: article.tags,
+      media: article.media,
+      read: article.read,
+      updatedAt: article.updatedAt
+    };
+    try {
+      await prepareArticleMedia();
+      const addedMedia = await Promise.all(pendingArticleMedia.map(async (item, index) => {
+        const storageKey = `article-media-${article.id}-${Date.now()}-${index}`;
+        await storeMediaFile(storageKey, item.file);
+        return { name: item.name, type: item.type, storageKey, src: URL.createObjectURL(item.file) };
+      }));
+      article.title = title;
+      article.summary = summary;
+      article.body = body.split(/\r?\n/).map(paragraph => paragraph.trim()).filter(Boolean);
+      article.tags = [...new Set(parsedTags)];
+      article.media = [...(article.media || []), ...addedMedia];
+      article.read = Math.max(1, Math.ceil(body.length / 350));
+      article.updatedAt = updatedAt;
+      store.auditLogs.push({ action: "article-updated", articleId: article.id, at: updatedAt, operator: "管理员" });
+    } catch (error) {
+      console.error("文章媒体保存失败", error);
+      return showToast("媒体文件保存失败，请重试");
+    }
+    if (!save()) {
+      Object.assign(article, originalArticle);
+      store.auditLogs.pop();
+      return;
+    }
+    pendingArticleMedia = [];
+    closeModal();
+    setPage(`article-${article.id}`);
+    showToast("文章修改成功");
   }
   if (e.target.id === "guestbook-form") { const data = new FormData(e.target); if (!data.get("text").trim()) return showToast("留言内容不合法"); store.guestbook.unshift({ id: Date.now(), name: data.get("name").trim(), text: data.get("text").trim(), date: new Date().toISOString().slice(0,10), status: "pending" }); save(); closeModal(); render(); showToast("留言已提交，等待审核"); }
   if (e.target.id === "friend-sign-form") {

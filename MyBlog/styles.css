@@ -102,6 +102,8 @@ button { cursor: pointer; }
 .form-help { color: var(--muted); font-size: 11px; line-height: 1.6; }
 .media-preview { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 8px; }
 .media-preview img, .media-preview video { width: 100%; height: 74px; object-fit: cover; background: #edf0e9; border-radius: 3px; }
+.media-preview .media-empty { grid-column: 1 / -1; color: var(--muted); font-size: 12px; line-height: 1.7; }
+.existing-media-preview { padding: 8px; border: 1px solid var(--line); background: rgba(255, 255, 255, .4); }
 
 .hero {
   min-height: 505px; padding: 84px 6vw 70px; display: flex; align-items: center;
@@ -270,7 +272,8 @@ button { cursor: pointer; }
   padding: 0; cursor: pointer;
 }
 .article-card > .delete-article { position: absolute; right: 18px; bottom: 17px; }
-.detail-topline { display: flex; justify-content: space-between; align-items: center; }
+.detail-topline { display: flex; justify-content: space-between; align-items: center; gap: 14px; flex-wrap: wrap; }
+.detail-admin-actions { display: flex; align-items: center; gap: 12px; }
 .confirm-copy { color: var(--muted); font-size: 13px; line-height: 1.8; margin: 0; }
 .button-danger { background: #b84c3b; color: #fff; border-color: #b84c3b; }
 .button-danger:hover { background: #963d30; }
